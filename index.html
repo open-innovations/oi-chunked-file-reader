@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="utf-8" />
+	<link rel="icon" href="https://open-innovations.org/resources/images/logos/oi-square-3.svg" />
+	<title>Read File</title>
+	<link rel="StyleSheet" href="style.css" type="text/css" />
+	<style>
+	#myFile { display: block; }
+	textarea { border: 1px solid #555; width: 100%; height: 250px; margin: 0; }
+	.progressbar { width: 100%; background: white; position: relative; }
+	.progressbar .progress-inner {
+		width: 0;
+		height: 4px;
+		text-align: center;
+		background: -moz-linear-gradient(left, #7d71b4, #00b9e4);
+		background: -webkit-linear-gradient(left, #7d71b4, #00b9e4);
+		background: linear-gradient(to right, #7d71b4, #00b9e4);
+	}
+	</style>
+	<script type="text/javascript" src="oi.chunked-file-reader.js"></script>
+</head>
+<body class="b6-bg">
+
+	<header>
+		<div class="b1-bg padded">
+			<div class="holder" style="text-align:center;">
+				<a href="https://open-innovations.org/"><svg width="100px" height="100px" style="margin-bottom:1em;" overflow="auto" viewBox="-32 -32 64 64" xmlns="http://www.w3.org/2000/svg"><mask id="oi-person"><path d="m-32-32h64v64h-12v-24a4 4 0 0 0 -4 -4h-8a4 4 0 0 0 -4 4v24h-36zm44 27m-8 0a8 8 0 1 0 16 0 8 8 0 1 0-16 0" fill="#fff"></path></mask><g id="oi-logo" fill="#00B6FF"><circle r="32" mask="url(#oi-person)"></circle></g></svg></a>
+				<h1>Chunked File Reader</h1>
+			</div>
+		</div>
+	</header>
+	<div class="padded">
+		<div class="holder">
+		
+			<p id="intro">A <a href="oi.chunked-file-reader.js">tiny Javascript library</a> (under 5kB) for chunked loading of files.</p>
+		
+			<section id="plain">
+				<h2>Read from a text file</h2>
+				<p>This example will attempt to read any file and output the contents in the text area below.</p>
+				<input type="file" class="button c3-bg" />
+				<div class="summary"></div>
+				<div class="progressbar"><div class="progress-inner"></div></div><textarea></textarea>
+			</section>
+			
+			<section id="geojson">
+				<h2>Read features from GeoJSON</h2>
+				<p>This example will attempt to read a GeoJSON file and extract any <code>features</code> as it goes.</p>
+				<input type="file" accept="application/geo+json,application/json,.geojson,.geojsonl" class="button c3-bg" />
+				<div class="summary"></div>
+				<div class="progressbar"><div class="progress-inner"></div></div><textarea></textarea>
+			</section>
+		</div>
+	</div>
+
+	<script>
+	OI.ready(function(){
+
+		var el1 = document.querySelector('#plain .progressbar .progress-inner');
+		OI.ChunkedFileReader(document.querySelector('#plain input[type=file]'),{
+			'chunk': 65536,
+			'init': function(){
+				this.txt = '';
+			},
+			'progress': function(chunk,start,end,len){
+				this.txt += chunk;
+				var pc = Math.min(100,(100*end/len)).toFixed(1)+'%';
+				el1.style.width = pc;
+			},
+			'complete': function(arg){
+				document.querySelector('#plain .summary').innerHTML = 'File is '+niceSize(arg.size);
+				document.querySelector('#plain textarea').innerHTML = this.txt;
+			}
+		});
+		
+		
+		var el2 = document.querySelector('#geojson .progressbar .progress-inner');
+		OI.ReadGeoJSONFeatures(document.querySelector('#geojson input[type=file]'),{
+			'init': function(){
+				this.collection = [];
+				this.txt = "";
+			},
+			'progress': function(chunk,start,end,len){
+				this.txt += chunk;
+				var pc = Math.min(100,(100*end/len)).toFixed(1)+'%';
+				el2.style.width = pc;
+			},
+			'complete': function(arg){
+				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.collection.length+' feature'+(this.collection.length==1?'':'s')+' in file ('+niceSize(arg.size)+')';
+				document.querySelector('#geojson textarea').innerHTML = this.txt;
+			}
+		});
+		
+
+		function niceSize(b){
+			if(b > 1e12) return (b/1e12).toFixed(2)+" TB";
+			if(b > 1e9) return (b/1e9).toFixed(2)+" GB";
+			if(b > 1e6) return (b/1e6).toFixed(2)+" MB";
+			if(b > 1e3) return (b/1e3).toFixed(2)+" kB";
+			return (b)+" bytes";
+		}
+	});
+	</script>
+
+</body>
+</html>
