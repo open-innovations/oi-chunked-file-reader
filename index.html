@@ -24,6 +24,7 @@
 	</style>
 	<script type="text/javascript" src="oi.chunked-file-reader.js"></script>
 	<script type="text/javascript" src="resources/leaflet.js"></script>
+	<script type="text/javascript" src="resources/PruneCluster.js"></script>
 </head>
 <body class="b6-bg">
 
@@ -60,6 +61,7 @@
 	</div>
 
 	<script>
+	var colour = "#00B6FF";
 	OI.ready(function(){
 
 		var el1 = document.querySelector('#plain .progressbar .progress-inner');
@@ -109,12 +111,45 @@
 						maxZoom: 19
 					}).addTo(this.map);
 					this.geo = L.geoJSON({'type':'FeatureCollection','features':[]},{
-						'style': { "color": "#00B6FF", "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 },
+						'style': { "color": colour, "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 },
 						'onEachFeature': function(feature, layer){
-							if(layer instanceof L.Marker) layer.setIcon(makeMarker("#00B6FF"));
+							if(layer instanceof L.Marker) layer.setIcon(makeMarker(colour));
 						}
 					}).addTo(this.map);
 					this.geo.bindPopup(function(feature){ return popuptext(feature.feature); });
+				}
+				
+				if(!this.layerGroup){
+					// Create a new layerGroup
+					this.layerGroup = new L.LayerGroup();
+					this.layerGroup.addTo(this.map);
+				}
+
+				// Remove any existing markers
+				if(this.markers) this.markers.RemoveMarkers();
+
+				if(!this.markers){
+					// Create a new PruneCluster layer
+					this.markers = new PruneClusterForLeaflet();
+					this.markers.BuildLeafletClusterIcon = function(cluster) {
+						var max,i,c,fs,c2,c3,n,s;
+						var population = cluster.population; // the number of markers inside the cluster
+						max = 0;
+						for(i = 0; i < this.Cluster._clusters.length; i++) max = Math.max(max,this.Cluster._clusters[i].population);
+						c = {'colour':colour,'contrast':'white'};
+						fs = 0.7 + Math.sqrt(population/max)*0.3;
+						n = (""+population).length;
+						if(n==1) s = 1.8
+						else if(n==2) s = 2.2
+						else if(n==3) s = 2.6;
+						else if(n==4) s = 3;
+						else if(n==5) s = 3;
+						return L.divIcon({ html: '<div class="marker-group" style="background:'+c.colour+';color:'+(c.contrast)+';box-shadow:0 0 0 0.2em '+c2+',0 0 0 0.4em '+c3+';font-family:Poppins;border-radius:100%;text-align:center;font-size:'+fs+'em;line-height:'+s+'em;width:'+s+'em;opacity:0.85;">'+population+'</div>', className: '' });
+					};
+					// Add the PruneCluster layer to the layer group
+					this.layerGroup.addLayer(this.markers);
+					
+					//this.markers.addLayers();
 				}
 				if(this.geo) this.geo.clearLayers();
 			},
@@ -123,13 +158,34 @@
 				var pc = Math.min(100,(100*end/len)).toFixed(1)+'%';
 				el2.style.width = pc;
 				if(this.geo){
+					var bounds;
+
+					// Go through features extracting Points for marker layer
+					var nadded = 0;
+					var extent = new Bounds();
+					if(this.typ=="FeatureCollection"){
+						for(var f = this.collection.length-1; f >= 0; f--){
+							if(this.collection[f].geometry && this.collection[f].geometry.type=="Point"){
+								ll = this.collection[f].geometry.coordinates;
+								extent.expand(ll);
+								var marker = new PruneCluster.Marker(ll[1],ll[0]);
+								marker.data.icon = createIcon;
+								marker.category = 0;
+								this.markers.RegisterMarker(marker);
+								this.collection.splice(f,1);
+								nadded++;
+							}
+						}
+					}
+
 					geojson = {'type':this.typ};
 					geojson[(this.typ=="GeometryCollection" ? "geometries":"features")] = clone(this.collection);
-					this.length += this.collection.length;
+					this.length += this.collection.length + nadded;
 					this.collection = [];
 					this.geo.addData(geojson);
 					if(!this.moved){
-						bounds = this.geo.getBounds();
+						if(this.markers.Cluster._markers.length==0) bounds = this.geo.getBounds();
+						else bounds = extent.get();
 						if(bounds._southWest){
 							this.map.fitBounds(bounds);
 							this.moved = true;
@@ -142,10 +198,38 @@
 				diff = (((new Date()).getTime() - this.timer.getTime())/1000);
 				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.length+' feature'+(this.length==1?'':'s')+' in file ('+niceSize(arg.size)+') in '+diff+'s';
 				if(arg.size > 1e6) this.txt = '[truncated]\n'+this.txt.substr(1,1e6);
-				bounds = this.geo.getBounds();
-				if(bounds._southWest) this.map.fitBounds(bounds);
+				b = new Bounds(this.geo.getBounds());
+				b.expandByMarkers(this.markers);
+				this.map.fitBounds(b.get());
 			}
 		});
+		function Bounds(b){
+			if(!b) b = {};
+			if(!b._northEast) b._northEast = {'lat':-90,'lng':-180};
+			if(!b._southWest) b._southWest = {'lat':90,'lng':180};
+			this.N = b._northEast.lat;
+			this.E = b._northEast.lng;
+			this.S = b._southWest.lat;
+			this.W = b._southWest.lng;
+			this.expandByMarkers = function(a){
+				markers = a.Cluster._markers;
+				for(var m = 0; m < markers.length; m++) this.expand([markers[m].position.lng,markers[m].position.lat]);
+				return this;
+			};
+			this.expand = function(lonlat){
+				this.N = Math.max(this.N,lonlat[1]);
+				this.E = Math.max(this.E,lonlat[0]);
+				this.S = Math.min(this.S,lonlat[1]);
+				this.W = Math.min(this.W,lonlat[0]);
+				return this;
+			};
+			this.get = function(){
+				return new L.LatLngBounds(
+					new L.LatLng(this.N, this.E),
+					new L.LatLng(this.S, this.W)
+				);
+			};
+		};
 		function clone(json){ return JSON.parse(JSON.stringify(json)); }
 		function niceSize(b){
 			if(b > 1e12) return (b/1e12).toFixed(2)+" TB";
@@ -153,6 +237,14 @@
 			if(b > 1e6) return (b/1e6).toFixed(2)+" MB";
 			if(b > 1e3) return (b/1e3).toFixed(2)+" kB";
 			return (b)+" bytes";
+		}
+		function createIcon(data, category){
+			return L.divIcon({
+				'className': 'oi-map-marker',
+				'html': '<svg overflow="visible" width="24" height="40" class="oi-map-marker" style="transform:translate3d(0,0,0)"><path d="M 0,0 L -10.84,-22.86 A 12 12 1 1 1 10.84,-22.86 L 0,0 z" fill="{fill}" fill-opacity="1"></path><ellipse cx="0" cy="-27.5" rx="4" ry="4" fill="white"></ellipse></svg>'.replace(/\{fill\}/,colour),
+				iconSize: [0, 0],
+				iconAnchor: [0, 0]
+			});
 		}
 		function makeMarker(colour){
 			return L.divIcon({
