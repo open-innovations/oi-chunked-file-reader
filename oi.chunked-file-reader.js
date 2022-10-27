@@ -22,7 +22,7 @@
 			this.log('error','No <input> provided');
 			return this;
 		}
-		var chunk = (typeof opts.chunk==="number" ? opts.chunk : 2048);
+		var chunk = (typeof opts.chunk==="number" ? opts.chunk : 65536);
 		var delay = (typeof opts.delay==="number" ? opts.delay : 20);
 		
 		this.read = function(input){
@@ -87,7 +87,7 @@
 		var _obj = this;
 		var defaults = {
 			'delay': 5,
-			'chunk': 8192,
+			'chunk': 65536,
 			'init': function(){
 				this.collection = [];
 			},
@@ -99,21 +99,24 @@
 				str += chunk;
 				if(typ=="FeatureCollection"){
 					str = str.replace(/(\{\s*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{\s*"type"\s*:\s*"Feature"|\]\}[\n\r\s]*$|[\n\r\s]*$)/g,function(m,p1,p2){
-						console.log(p1);
+						var json = null;
 						try {
-							_obj.collection.push(JSON.parse(p1));
+							json = JSON.parse(p1);
 						}catch(err){
-							this.log('error',err);
+							console.error(err);
 						}
+						if(json) _obj.collection.push(json);
 						return p2;
 					});
 				}else if(typ=="GeometryCollection"){
 					str = str.replace(/(\{\s*"type"\s*:\s*"(Point|Polygon|MultiPolygon|LineString)"[^\}]*?\})/g,function(m,p1){
+						var json = null;
 						try {
-							_obj.collection.push(JSON.parse(p1));
+							json = JSON.parse(p1);
 						}catch(err){
-							this.log('error',err);
+							console.error(err);
 						}
+						if(json) _obj.collection.push(json);
 						return "";
 					});
 				}

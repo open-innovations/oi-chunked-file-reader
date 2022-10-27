@@ -70,6 +70,7 @@
 			},
 			'complete': function(arg){
 				document.querySelector('#plain .summary').innerHTML = 'File is '+niceSize(arg.size);
+				if(arg.size > 1e6) this.txt = this.txt.substr(1,1e6);
 				document.querySelector('#plain textarea').innerHTML = this.txt;
 			}
 		});
@@ -88,6 +89,7 @@
 			},
 			'complete': function(arg){
 				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.collection.length+' feature'+(this.collection.length==1?'':'s')+' in file ('+niceSize(arg.size)+')';
+				if(arg.size > 1e6) this.txt = this.txt.substr(1,1e6);
 				document.querySelector('#geojson textarea').innerHTML = this.txt;
 			}
 		});
