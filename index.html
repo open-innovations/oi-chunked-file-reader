@@ -90,7 +90,9 @@
 				this.done = [];
 				this.txt = "";
 				this.length = 0;
-				document.querySelector('#geojson .summary').innerHTML = 'Loading '+niceSize(arg.size)+'...';
+				this.moved = false;
+				this.timer = new Date();
+				document.querySelector('#geojson .summary').innerHTML = 'Loading '+niceSize(arg.size)+'... found <span class="features">0</span> features.';
 
 				if(!this.map){
 					var el = document.getElementById('map');
@@ -126,14 +128,22 @@
 					this.length += this.collection.length;
 					this.collection = [];
 					this.geo.addData(geojson);
-					bounds = this.geo.getBounds();
-					if(bounds._southWest) this.map.fitBounds(bounds,{animate:true,duration:0});
+					if(!this.moved){
+						bounds = this.geo.getBounds();
+						if(bounds._southWest){
+							this.map.fitBounds(bounds);
+							this.moved = true;
+						}
+					}
 				}
-
+				document.querySelector('#geojson .summary .features').innerHTML = this.length;
 			},
 			'complete': function(arg){
-				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.length+' feature'+(this.length==1?'':'s')+' in file ('+niceSize(arg.size)+')';
+				diff = (((new Date()).getTime() - this.timer.getTime())/1000);
+				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.length+' feature'+(this.length==1?'':'s')+' in file ('+niceSize(arg.size)+') in '+diff+'s';
 				if(arg.size > 1e6) this.txt = '[truncated]\n'+this.txt.substr(1,1e6);
+				bounds = this.geo.getBounds();
+				if(bounds._southWest) this.map.fitBounds(bounds);
 			}
 		});
 		function clone(json){ return JSON.parse(JSON.stringify(json)); }
