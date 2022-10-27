@@ -21,6 +21,22 @@
 	}
 	#map, textarea { aspect-ratio: 16 / 9; border: 1px solid #555; }
 	.leaflet-popup-content h3 { margin-top: 0; padding-top: 0; }
+	.dropzone {
+		border: 2px dashed #999999;
+		background: transparent;
+		padding: 2em;
+		color: #333333;
+		text-align: center;
+		position: relative;
+	}
+	.dropzone input {
+		position: absolute;
+		left: 0px;
+		top: 0px;
+		width: 100%;
+		height: 100%;
+		opacity: 0;
+	}
 	</style>
 	<script type="text/javascript" src="oi.chunked-file-reader.js"></script>
 	<script type="text/javascript" src="resources/leaflet.js"></script>
@@ -44,16 +60,28 @@
 			<section id="plain">
 				<h2>Read from a text file</h2>
 				<p>This example will attempt to read any file and output the contents in the text area below.</p>
-				<input type="file" class="button c3-bg" />
-				<div class="summary"></div>
-				<div class="progressbar"><div class="progress-inner"></div></div><textarea></textarea>
+				
+				<div class="dropzone">
+					<input type="file" class="button c3-bg" />
+					<div class="helpertext">
+						Drop CSV file here (or click to browse files)<br>
+						<div class="summary"></div>
+					</div>
+				</div>
+				<div class="progressbar"><div class="progress-inner"></div></div>
+				<textarea></textarea>
 			</section>
 			
 			<section id="geojson">
 				<h2>Read features from GeoJSON</h2>
 				<p>This example will attempt to read a GeoJSON file and extract any <code>features</code> as it goes.</p>
-				<input type="file" accept="application/geo+json,application/json,.geojson,.geojsonl" class="button c3-bg" />
-				<div class="summary"></div>
+				<div class="dropzone">
+					<input type="file" accept="application/geo+json,application/json,.geojson,.geojsonl" class="button c3-bg" />
+					<div class="helpertext">
+						Drop CSV file here (or click to browse files)<br>
+						<div class="summary"></div>
+					</div>
+				</div>
 				<div class="progressbar"><div class="progress-inner"></div></div>
 				<div id="map"></div>
 			</section>
