@@ -110,9 +110,9 @@
 						'style': { "color": "#00B6FF", "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 },
 						'onEachFeature': function(feature, layer){
 							if(layer instanceof L.Marker) layer.setIcon(makeMarker("#00B6FF"));
-							layer.bindPopup(popuptext(feature));
 						}
 					}).addTo(this.map);
+					this.geo.bindPopup(function(feature){ return popuptext(feature.feature); });
 				}
 				if(this.geo) this.geo.clearLayers();
 			},
