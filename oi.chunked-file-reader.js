@@ -82,8 +82,33 @@
 		this.collection = [];
 		var c = 0;
 		var str = '';
-		var typ = "";
 		var _obj = this;
+		function extractFeatures(typ,str){
+			if(typ=="FeatureCollection"){
+				var regex = RegExp(/(\{[\n\r\s]*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{[\n\r\s]*"type"\s*:\s*"Feature"|\]\}[\n\r\s]*$|[\n\r\s]*$)/);
+				while(str.match(regex)){
+					str = str.replace(regex,function(m,p1,p2){
+						var json = null;
+						try { json = JSON.parse(p1); }
+						catch(err){ console.error(err); }
+						if(json) _obj.collection.push(json);
+						return p2;
+					});
+				}
+			}else if(typ=="GeometryCollection"){
+				var regex = RegExp(/(\{\s*"type"\s*:\s*"(Point|Polygon|MultiPolygon|LineString)"[^\}]*?\})/);
+				while(str.match(regex)){
+					str = str.replace(regex,function(m,p1){
+						var json = null;
+						try { json = JSON.parse(p1); }
+						catch(err){ console.error(err); }
+						if(json) _obj.collection.push(json);
+						return "";
+					});
+				}
+			}
+			return str;
+		}
 		var defaults = {
 			'delay': 5,
 			'chunk': 65536,
@@ -95,30 +120,7 @@
 					if(chunk.match(/"type":[\s]*"GeometryCollection"/)) typ = "GeometryCollection";
 					else if(chunk.match(/"type":[\s]*"FeatureCollection"/)) typ = "FeatureCollection";
 				}
-				str += chunk;
-				if(typ=="FeatureCollection"){
-					str = str.replace(/(\{\s*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{\s*"type"\s*:\s*"Feature"|\]\}[\n\r\s]*$|[\n\r\s]*$)/g,function(m,p1,p2){
-						var json = null;
-						try {
-							json = JSON.parse(p1);
-						}catch(err){
-							console.error(err);
-						}
-						if(json) _obj.collection.push(json);
-						return p2;
-					});
-				}else if(typ=="GeometryCollection"){
-					str = str.replace(/(\{\s*"type"\s*:\s*"(Point|Polygon|MultiPolygon|LineString)"[^\}]*?\})/g,function(m,p1){
-						var json = null;
-						try {
-							json = JSON.parse(p1);
-						}catch(err){
-							console.error(err);
-						}
-						if(json) _obj.collection.push(json);
-						return "";
-					});
-				}
+				str = extractFeatures(typ,str+chunk);
 				c++;
 			},
 			'this': this
