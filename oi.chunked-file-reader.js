@@ -28,11 +28,10 @@
 		this.read = function(input){
 			var myFile,size,i,blob,reader;
 			i = 0;
-			if(typeof opts.init==="function") opts.init.call(opts.this||_obj);
 			if(input.files && input.files[0]){
 				myFile = input.files[0];
 				size = myFile.size; //getting the file size so that we can use it for loop statement
-
+				if(typeof opts.init==="function") opts.init.call(opts.this||_obj,{'size':size,'file':input.files[0]});
 				function readChunk(i){
 					blob = myFile.slice(i, i + chunk); //slice the file by specifying the index(chunk size)
 					reader = new FileReader();

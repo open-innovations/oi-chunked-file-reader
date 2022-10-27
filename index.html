@@ -59,9 +59,11 @@
 
 		var el1 = document.querySelector('#plain .progressbar .progress-inner');
 		OI.ChunkedFileReader(document.querySelector('#plain input[type=file]'),{
-			'chunk': 65536,
-			'init': function(){
+			'chunk': 100000,
+			'init': function(arg){
 				this.txt = '';
+				document.querySelector('#plain .summary').innerHTML = 'Loading '+niceSize(arg.size)+'...';
+				document.querySelector('#plain textarea').innerHTML = "";
 			},
 			'progress': function(chunk,start,end,len){
 				this.txt += chunk;
@@ -70,7 +72,7 @@
 			},
 			'complete': function(arg){
 				document.querySelector('#plain .summary').innerHTML = 'File is '+niceSize(arg.size);
-				if(arg.size > 1e6) this.txt = this.txt.substr(1,1e6);
+				if(arg.size > 1e6) this.txt = '[truncated]\n'+this.txt.substr(1,1e6);
 				document.querySelector('#plain textarea').innerHTML = this.txt;
 			}
 		});
@@ -78,9 +80,11 @@
 		
 		var el2 = document.querySelector('#geojson .progressbar .progress-inner');
 		OI.ReadGeoJSONFeatures(document.querySelector('#geojson input[type=file]'),{
-			'init': function(){
+			'init': function(arg){
 				this.collection = [];
 				this.txt = "";
+				document.querySelector('#geojson .summary').innerHTML = 'Loading '+niceSize(arg.size)+'...';
+				document.querySelector('#geojson textarea').innerHTML = "";
 			},
 			'progress': function(chunk,start,end,len){
 				this.txt += chunk;
@@ -89,7 +93,7 @@
 			},
 			'complete': function(arg){
 				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.collection.length+' feature'+(this.collection.length==1?'':'s')+' in file ('+niceSize(arg.size)+')';
-				if(arg.size > 1e6) this.txt = this.txt.substr(1,1e6);
+				if(arg.size > 1e6) this.txt = '[truncated]\n'+this.txt.substr(1,1e6);
 				document.querySelector('#geojson textarea').innerHTML = this.txt;
 			}
 		});
