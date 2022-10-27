@@ -4,11 +4,12 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta charset="utf-8" />
 	<link rel="icon" href="https://open-innovations.org/resources/images/logos/oi-square-3.svg" />
-	<title>Read File</title>
+	<title>Chunked File Reader</title>
+	<link rel="StyleSheet" href="resources/leaflet.css" type="text/css" />
 	<link rel="StyleSheet" href="style.css" type="text/css" />
 	<style>
 	#myFile { display: block; }
-	textarea { border: 1px solid #555; width: 100%; height: 250px; margin: 0; }
+	textarea { width: 100%; margin: 0; }
 	.progressbar { width: 100%; background: white; position: relative; }
 	.progressbar .progress-inner {
 		width: 0;
@@ -18,8 +19,10 @@
 		background: -webkit-linear-gradient(left, #7d71b4, #00b9e4);
 		background: linear-gradient(to right, #7d71b4, #00b9e4);
 	}
+	#map, textarea { height: 400px; border: 1px solid #555; }
 	</style>
 	<script type="text/javascript" src="oi.chunked-file-reader.js"></script>
+	<script type="text/javascript" src="resources/leaflet.js"></script>
 </head>
 <body class="b6-bg">
 
@@ -49,7 +52,8 @@
 				<p>This example will attempt to read a GeoJSON file and extract any <code>features</code> as it goes.</p>
 				<input type="file" accept="application/geo+json,application/json,.geojson,.geojsonl" class="button c3-bg" />
 				<div class="summary"></div>
-				<div class="progressbar"><div class="progress-inner"></div></div><textarea></textarea>
+				<div class="progressbar"><div class="progress-inner"></div></div>
+				<div id="map"></div>
 			</section>
 		</div>
 	</div>
@@ -82,23 +86,49 @@
 		OI.ReadGeoJSONFeatures(document.querySelector('#geojson input[type=file]'),{
 			'init': function(arg){
 				this.collection = [];
+				this.done = [];
 				this.txt = "";
+				this.length = 0;
 				document.querySelector('#geojson .summary').innerHTML = 'Loading '+niceSize(arg.size)+'...';
-				document.querySelector('#geojson textarea').innerHTML = "";
+
+				if(!this.map){
+					var el = document.getElementById('map');
+					if(!el){
+						el = document.createElement('div');
+						el.classList.add('map');
+						document.querySelector('#geojson textarea').after(el);
+					}
+					this.map = L.map(el,{'scrollWheelZoom':true});
+					// CartoDB map
+					L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+						attribution: 'Tiles: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+						subdomains: 'abcd',
+						maxZoom: 19
+					}).addTo(this.map);
+				}
+				this.geo = L.geoJSON({'type':'FeatureCollection','features':[]},{'style': { "color": "#00B6FF", "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 }}).addTo(this.map);
 			},
 			'progress': function(chunk,start,end,len){
 				this.txt += chunk;
 				var pc = Math.min(100,(100*end/len)).toFixed(1)+'%';
 				el2.style.width = pc;
+				if(this.geo){
+					geojson = {'type':this.typ};
+					geojson[(this.typ=="GeometryCollection" ? "geometries":"features")] = clone(this.collection);
+					this.length += this.collection.length;
+					this.collection = [];
+					this.geo.addData(geojson);
+					bounds = this.geo.getBounds();
+					if(bounds._southWest) this.map.fitBounds(bounds,{animate:true,duration:0});
+				}
+
 			},
 			'complete': function(arg){
-				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.collection.length+' feature'+(this.collection.length==1?'':'s')+' in file ('+niceSize(arg.size)+')';
+				document.querySelector('#geojson .summary').innerHTML = 'Found '+this.length+' feature'+(this.length==1?'':'s')+' in file ('+niceSize(arg.size)+')';
 				if(arg.size > 1e6) this.txt = '[truncated]\n'+this.txt.substr(1,1e6);
-				document.querySelector('#geojson textarea').innerHTML = this.txt;
 			}
 		});
-		
-
+		function clone(json){ return JSON.parse(JSON.stringify(json)); }
 		function niceSize(b){
 			if(b > 1e12) return (b/1e12).toFixed(2)+" TB";
 			if(b > 1e9) return (b/1e9).toFixed(2)+" GB";

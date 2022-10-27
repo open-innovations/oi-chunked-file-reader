@@ -83,6 +83,7 @@
 		var c = 0;
 		var str = '';
 		var _obj = this;
+		this.typ = '';
 		function extractFeatures(typ,str){
 			if(typ=="FeatureCollection"){
 				var regex = RegExp(/(\{[\n\r\s]*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{[\n\r\s]*"type"\s*:\s*"Feature"|\]\}[\n\r\s]*$|[\n\r\s]*$)/);
@@ -117,10 +118,10 @@
 			},
 			'readChunk': function(chunk,start,end,len){
 				if(start==0){
-					if(chunk.match(/"type":[\s]*"GeometryCollection"/)) typ = "GeometryCollection";
-					else if(chunk.match(/"type":[\s]*"FeatureCollection"/)) typ = "FeatureCollection";
+					if(chunk.match(/"type":[\s]*"GeometryCollection"/)) this.typ = "GeometryCollection";
+					else if(chunk.match(/"type":[\s]*"FeatureCollection"/)) this.typ = "FeatureCollection";
 				}
-				str = extractFeatures(typ,str+chunk);
+				str = extractFeatures(this.typ,str+chunk);
 				c++;
 			},
 			'this': this
