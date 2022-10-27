@@ -86,7 +86,7 @@
 		this.typ = '';
 		function extractFeatures(typ,str){
 			if(typ=="FeatureCollection"){
-				var regex = RegExp(/(\{[\n\r\s]*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{[\n\r\s]*"type"\s*:\s*"Feature"|\]\}[\n\r\s]*$|[\n\r\s]*$)/);
+				var regex = RegExp(/(\{[\n\r\s]*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{[\n\r\s]*"type"\s*:\s*"Feature"|\][\n\r\s]*\}[\n\r\s]*$|[\n\r\s]*$)/);
 				while(str.match(regex)){
 					str = str.replace(regex,function(m,p1,p2){
 						var json = null;
