@@ -105,8 +105,16 @@
 						subdomains: 'abcd',
 						maxZoom: 19
 					}).addTo(this.map);
+					this.geo = L.geoJSON({'type':'FeatureCollection','features':[]},{
+						'style': { "color": "#00B6FF", "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 },
+						'onEachFeature': function(feature, layer){
+							if (layer instanceof L.Marker) {
+								layer.setIcon(makeMarker("#00B6FF"))
+							}
+						}
+					}).addTo(this.map);
 				}
-				this.geo = L.geoJSON({'type':'FeatureCollection','features':[]},{'style': { "color": "#00B6FF", "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 }}).addTo(this.map);
+				if(this.geo) this.geo.clearLayers();
 			},
 			'progress': function(chunk,start,end,len){
 				this.txt += chunk;
@@ -135,6 +143,17 @@
 			if(b > 1e6) return (b/1e6).toFixed(2)+" MB";
 			if(b > 1e3) return (b/1e3).toFixed(2)+" kB";
 			return (b)+" bytes";
+		}
+		function makeMarker(colour){
+			return L.divIcon({
+				'className': '',
+				'html':	'<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" width="7.0556mm" height="11.571mm" viewBox="0 0 25 41.001" id="svg2" version="1.1"><g id="layer1" transform="translate(1195.4,216.71)"><path style="fill:%COLOUR%;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none" d="M 12.5 0.5 A 12 12 0 0 0 0.5 12.5 A 12 12 0 0 0 1.8047 17.939 L 1.8008 17.939 L 12.5 40.998 L 23.199 17.939 L 23.182 17.939 A 12 12 0 0 0 24.5 12.5 A 12 12 0 0 0 12.5 0.5 z " transform="matrix(1,0,0,1,-1195.4,-216.71)" id="path4147" /><ellipse style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.428;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" id="path4173" cx="-1182.9" cy="-204.47" rx="5.3848" ry="5.0002" /></g></svg>'.replace(/%COLOUR%/,colour||"#000000"),
+				iconSize:	 [25, 41], // size of the icon
+				shadowSize:	 [41, 41], // size of the shadow
+				iconAnchor:	 [12.5, 41], // point of the icon which will correspond to marker's location
+				shadowAnchor: [12.5, 41],	// the same for the shadow
+				popupAnchor:	[0, -41] // point from which the popup should open relative to the iconAnchor
+			});
 		}
 	});
 	</script>
