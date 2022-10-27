@@ -19,7 +19,8 @@
 		background: -webkit-linear-gradient(left, #7d71b4, #00b9e4);
 		background: linear-gradient(to right, #7d71b4, #00b9e4);
 	}
-	#map, textarea { height: 400px; border: 1px solid #555; }
+	#map, textarea { aspect-ratio: 16 / 9; border: 1px solid #555; }
+	.leaflet-popup-content h3 { margin-top: 0; padding-top: 0; }
 	</style>
 	<script type="text/javascript" src="oi.chunked-file-reader.js"></script>
 	<script type="text/javascript" src="resources/leaflet.js"></script>
@@ -108,9 +109,8 @@
 					this.geo = L.geoJSON({'type':'FeatureCollection','features':[]},{
 						'style': { "color": "#00B6FF", "weight": 0.5, "opacity": 0.65, "fillOpacity": 0.5 },
 						'onEachFeature': function(feature, layer){
-							if (layer instanceof L.Marker) {
-								layer.setIcon(makeMarker("#00B6FF"))
-							}
+							if(layer instanceof L.Marker) layer.setIcon(makeMarker("#00B6FF"));
+							layer.bindPopup(popuptext(feature));
 						}
 					}).addTo(this.map);
 				}
@@ -154,6 +154,49 @@
 				shadowAnchor: [12.5, 41],	// the same for the shadow
 				popupAnchor:	[0, -41] // point from which the popup should open relative to the iconAnchor
 			});
+		}
+		function popuptext(feature){
+			// does this feature have a property named popupContent?
+			popup = '';
+			if(feature.properties){
+				// If this feature has a default popup
+				// Convert "other_tags" e.g "\"ele:msl\"=>\"105.8\",\"ele:source\"=>\"GPS\",\"material\"=>\"stone\""
+				if(feature.properties.other_tags){
+					tags = feature.properties.other_tags.split(/,/);
+					for(var t = 0; t < tags.length; t++){
+						tags[t] = tags[t].replace(/\"/g,"");
+						bits = tags[t].split(/\=\>/);
+						if(bits.length == 2){
+							if(!feature.properties[bits[0]]) feature.properties[bits[0]] = bits[1];
+						}
+					}
+				}
+				if(feature.properties.popup){
+					popup = feature.properties.popup.replace(/\n/g,"<br />");
+				}else{
+					title = '';
+					if(feature.properties.title || feature.properties.name || feature.properties.Name) title = (feature.properties.title || feature.properties.name || feature.properties.Name);
+					//if(!title) title = "Unknown name";
+					if(title) popup += '<h3>'+(title)+'</h3>';
+					var added = 0;
+					for(var f in feature.properties){
+						if(f != "Name" && f!="name" && f!="title" && f!="other_tags" && (typeof feature.properties[f]==="number" || (typeof feature.properties[f]==="string" && feature.properties[f].length > 0))){
+							popup += (added > 0 ? '<br />':'')+'<strong>'+f+':</strong> '+(typeof feature.properties[f]==="string" && feature.properties[f].indexOf("http")==0 ? '<a href="'+feature.properties[f]+'" target="_blank">'+feature.properties[f]+'</a>' : feature.properties[f])+'';
+							added++;
+						}
+					}
+				}
+				// Loop over properties and replace anything
+				for(p in feature.properties){
+					while(popup.indexOf("%"+p+"%") >= 0){
+						popup = popup.replace("%"+p+"%",feature.properties[p] || "?");
+					}
+				}
+				popup = popup.replace(/%type%/g,feature.geometry.type.toLowerCase());
+				// Replace any remaining unescaped parts
+				popup = popup.replace(/%[^\%]+%/g,"?");
+			}
+			return popup;
 		}
 	});
 	</script>
