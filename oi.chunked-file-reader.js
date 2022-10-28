@@ -102,8 +102,13 @@
 				// Get the feature
 				rtn = getUpToClosingBracket(txt,pos);
 				txt = rtn.str;
-				if(rtn.f) fs.push(JSON.parse(rtn.f));
-				else done = true;
+				if(rtn.f){
+					try {
+						fs.push(JSON.parse(rtn.f));
+					}catch(err){
+						console.error('Invalid JSON',rtn.f);
+					}
+				}else done = true;
 			}
 			return {'features':fs,'str':txt};
 		}
