@@ -80,35 +80,49 @@
 	}
 	function ReadGeoJSONFeatures(input,opts){
 		this.collection = [];
-		var c = 0;
-		var str = '';
-		var _obj = this;
+		var c,str,_obj,reg;
+		c = 0;
+		str = '';
+		_obj = this;
 		this.typ = '';
+		reg = {
+			'FeatureCollection': RegExp(/\{[\n\r\s]*"type"[\n\r\s]*:[\n\r\s]*"Feature"/),
+			'GeometryCollection': RegExp(/\{[\n\r\s]*"type"[\n\r\s]*:[\n\r\s]*"(Point|Polygon|MultiPolygon|LineString)"/)
+		}
 		function extractFeatures(typ,str){
-			if(typ=="FeatureCollection"){
-				var regex = RegExp(/(\{[\n\r\s]*"type"\s*:\s*"Feature".*?\})\,?[\n\r\s]*(\{[\n\r\s]*"type"\s*:\s*"Feature"|\][\n\r\s]*\}[\n\r\s]*$|[\n\r\s]*$)/);
-				while(str.match(regex)){
-					str = str.replace(regex,function(m,p1,p2){
-						var json = null;
-						try { json = JSON.parse(p1); }
-						catch(err){ console.error(err); }
-						if(json) _obj.collection.push(json);
-						return p2;
-					});
-				}
-			}else if(typ=="GeometryCollection"){
-				var regex = RegExp(/(\{\s*"type"\s*:\s*"(Point|Polygon|MultiPolygon|LineString)"[^\}]*?\})/);
-				while(str.match(regex)){
-					str = str.replace(regex,function(m,p1){
-						var json = null;
-						try { json = JSON.parse(p1); }
-						catch(err){ console.error(err); }
-						if(json) _obj.collection.push(json);
-						return "";
-					});
-				}
+			var rtn = extractFeature(str,reg[typ]);
+			if(rtn.features) _obj.collection = _obj.collection.concat(rtn.features);
+			return rtn.str;
+		}
+		function extractFeature(txt,re){
+			var fs = [];
+			var idx,rtn,done=false;
+			while(txt.search(re) > 0 && !done){
+				pos = txt.search(re);
+				// Get the feature
+				rtn = getUpToClosingBracket(txt,pos);
+				txt = rtn.str;
+				if(rtn.f) fs.push(JSON.parse(rtn.f));
+				else done = true;
 			}
-			return str;
+			return {'features':fs,'str':txt};
+		}
+		function getUpToClosingBracket(txt,pos){
+			let depth = 1;
+			let newstr = txt[pos];
+			let i;
+			for(i = pos + 1; i < txt.length; i++){
+				switch(txt[i]){
+					case '{':
+						depth++;
+						break;
+					case '}':
+						if(--depth == 0) return {'f':newstr+txt[i],'str':txt.substr(i+1,)};
+						break;
+				}
+				newstr += txt[i];
+			}
+			return {'f':'','str':txt};
 		}
 		var defaults = {
 			'delay': 5,
@@ -129,7 +143,7 @@
 		merge(defaults,opts||{});
 		OI.ChunkedFileReader(input,defaults);
 		return this;
-	}	
+	}
 	// Recursively merge properties of two objects 
 	function merge(obj1, obj2){
 		for(var p in obj2){
