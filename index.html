@@ -199,6 +199,7 @@
 								extent.expand(ll);
 								var marker = new PruneCluster.Marker(ll[1],ll[0]);
 								marker.data.icon = createIcon;
+								marker.data.popup = popuptext(this.collection[f]);
 								marker.category = 0;
 								this.markers.RegisterMarker(marker);
 								this.collection.splice(f,1);
@@ -272,7 +273,8 @@
 				'className': 'oi-map-marker',
 				'html': '<svg overflow="visible" width="24" height="40" class="oi-map-marker" style="transform:translate3d(0,0,0)"><path d="M 0,0 L -10.84,-22.86 A 12 12 1 1 1 10.84,-22.86 L 0,0 z" fill="{fill}" fill-opacity="1"></path><ellipse cx="0" cy="-27.5" rx="4" ry="4" fill="white"></ellipse></svg>'.replace(/\{fill\}/,colour),
 				iconSize: [0, 0],
-				iconAnchor: [0, 0]
+				iconAnchor: [0, 0],
+				popupAnchor:	[0, -41]
 			});
 		}
 		function makeMarker(colour){
